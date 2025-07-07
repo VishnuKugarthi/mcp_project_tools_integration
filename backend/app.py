@@ -1,9 +1,9 @@
 import os
 import json
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import requests
-from dotenv import load_dotenv
+from flask import Flask, request, jsonify # type: ignore
+from flask_cors import CORS # type: ignore
+import requests # type: ignore
+from dotenv import load_dotenv # type: ignore
 
 # Load environment variables from .env file
 load_dotenv()
@@ -85,7 +85,7 @@ TOOL_DEFINITIONS = [
     },
     {
         "name": "get_jsonplaceholder_posts",
-        "description": "Fetches a list of recent posts or articles from an external blog/resource. Use this when the user asks for recent news, articles, or blog posts.",
+        "description": "Fetches a list of recent posts or articles from an external resource. Use this when the user asks for recent news, articles, or blog posts.",
         "parameters": {
             "type": "object",
             "properties": {
@@ -103,7 +103,7 @@ TOOL_DEFINITIONS = [
 def chat():
     """
     Handles incoming chat messages, manages conversation context,
-    and interacts with the Gemini LLM, including tool calling.
+    and interacts with the LLM, including tool calling.
     """
     user_message = request.json.get('message')
     if not user_message:
