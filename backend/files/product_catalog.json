@@ -1,0 +1,52 @@
+{
+  "P101": {
+    "name": "Laptop Pro",
+    "price": "$1200",
+    "description": "High-performance laptop for professionals."
+  },
+  "P102": {
+    "name": "Wireless Mouse",
+    "price": "$35",
+    "description": "Ergonomic design with long battery life."
+  },
+  "P103": {
+    "name": "Mechanical Keyboard",
+    "price": "$90",
+    "description": "RGB backlit keyboard with tactile switches."
+  },
+  "P104": {
+    "name": "External SSD 1TB",
+    "price": "$150",
+    "description": "Fast and portable storage solution."
+  },
+  "P105": {
+    "name": "Smartphone X",
+    "price": "$999",
+    "description": "Latest smartphone with advanced features."
+  },
+  "P106": {
+    "name": "Bluetooth Headphones",
+    "price": "$120",
+    "description": "Noise-cancelling headphones with superior sound quality."
+  },
+  "P107": {
+    "name": "4K Monitor",
+    "price": "$300",
+    "description": "Ultra HD monitor for stunning visuals."
+  },
+  "P108": {
+    "name": "Gaming Chair",
+    "price": "$250",
+    "description": "Ergonomic chair designed for long gaming sessions."
+  },
+  "P109": {
+    "name": "Smartwatch",
+    "price": "$200",
+    "description": "Stylish smartwatch with fitness tracking features."
+  },
+  "P110": {
+    "name": "Portable Charger",
+    "price": "$40",
+    "description": "Compact charger with fast charging capabilities."
+  }
+}

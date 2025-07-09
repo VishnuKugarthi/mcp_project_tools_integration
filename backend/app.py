@@ -1,9 +1,9 @@
 import os
 import json
-from flask import Flask, request, jsonify # type: ignore
-from flask_cors import CORS # type: ignore
-import requests # type: ignore
-from dotenv import load_dotenv # type: ignore
+from flask import Flask, request, jsonify 
+from flask_cors import CORS 
+import requests 
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
@@ -16,18 +16,36 @@ CORS(app) # Enable CORS for frontend communication
 # and associated with a user session ID.
 conversation_history = []
 
+
 # Replace with your actual Gemini API key from environment variables
 # For local development, set GEMINI_API_KEY in your .env file
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PRODUCT_CATALOG_FILE = os.path.join(BASE_DIR, 'files', 'product_catalog.json')
+
 # --- Simulated External Tool: Product Catalog (Existing) ---
-PRODUCT_CATALOG = {
-    "P101": {"name": "Laptop Pro", "price": "$1200", "description": "High-performance laptop for professionals."},
-    "P102": {"name": "Wireless Mouse", "price": "$35", "description": "Ergonomic design with long battery life."},
-    "P103": {"name": "Mechanical Keyboard", "price": "$90", "description": "RGB backlit keyboard with tactile switches."},
-    "P104": {"name": "External SSD 1TB", "price": "$150", "description": "Fast and portable storage solution."},
-}
+# PRODUCT_CATALOG = {
+#     "P101": {"name": "Laptop Pro", "price": "$1200", "description": "High-performance laptop for professionals."},
+#     "P102": {"name": "Wireless Mouse", "price": "$35", "description": "Ergonomic design with long battery life."},
+#     "P103": {"name": "Mechanical Keyboard", "price": "$90", "description": "RGB backlit keyboard with tactile switches."},
+#     "P104": {"name": "External SSD 1TB", "price": "$150", "description": "Fast and portable storage solution."},
+# }
+
+# PRODUCT_CATALOG=PRODUCT_CATALOG_FILE
+
+try:
+    with open(PRODUCT_CATALOG_FILE, 'r') as file:
+        product_list=json.load(file)
+        print(f"Loading product catalog from {PRODUCT_CATALOG_FILE}")
+
+        PRODUCT_CATALOG={key.upper():value for key,value in product_list.items()}
+        print(f"PRODUCT_CATALOG created successfully = ***** {PRODUCT_CATALOG} *****")
+
+except FileNotFoundError:
+    print(f"Product catalog file not found at {PRODUCT_CATALOG_FILE}. Using empty catalog.")
 
 def get_product_details(product_id: str):
     """
