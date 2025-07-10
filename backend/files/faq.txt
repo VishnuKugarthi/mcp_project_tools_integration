@@ -1,0 +1,55 @@
+
+FAQs
+
+1. What is Base44?
+
+A. Base44 is an AI-powered platform that lets you turn any idea into a fully-functional custom app, without the need for any coding experience.
+
+2. Do I need coding experience to use Base44?
+
+A. No. Our platform is designed to be easily accessible to non-technical users. Just describe your software needs in plain language, and our AI will handle the technical implementation.
+
+3. What types of applications can I build with Base44?
+
+A. Base44 is versatile and can be used to build a wide range of applications, including but not limited to: personal productivity apps, back-office tools, customer portals, and business process automation tools. You can also use it for rapid prototyping and creating MVPs.
+
+4. What kind of integrations does Base44 support?
+
+A. Most common integrations are already built into the platform. You can directly send emails, use SMS, connect to any external API, and query databases right out of the box—no complex setup required.
+
+5. How are Base44 applications deployed?
+
+A. We take care of it automatically. Base44 comes with built-in hosting, so there's no deployment process. When your app is created, it's instantly live and shareable.
+
+6. How does the natural language development process work?
+
+A. You simply type in your idea—whether it’s a general thought or you have specific requirements—in conversational language. Our AI interprets your instructions and generates the necessary code and structure for your app. You can then review, test, and refine your app through further conversation with the AI.
+
+7. Is my data secure with Base44?
+
+A. Yes, we take data security very seriously. User management and authentication systems are built-in, using best-in-class, industry-standard encryption and security practices to protect your data and your users' information.
+
+8. Do I own the applications I create with Base44?
+
+A. Definitely. All applications and content generated through Base44 belong entirely to you. We make no claims of ownership over anything you create using our platform. You're free to use, modify, distribute, or sell the generated applications however you see fit.
+
+Shipping Information:
+Standard shipping usually takes 3-5 business days. For urgent deliveries, express shipping is available and typically arrives within 1-2 business days. Shipping costs vary based on destination and speed.
+
+Return Policy:
+You can return most items within 30 days of purchase, provided they are in their original condition and accompanied by a valid receipt. Some electronic devices and personalized items may have different return windows or conditions. Please refer to our full return policy online for details.
+
+Product Warranty:
+All our products come with a standard 1-year manufacturer's warranty against defects in materials and workmanship. Extended warranty options are available for purchase on select products. This warranty does not cover accidental damage.
+
+Payment Methods:
+We accept a wide range of payment methods including major credit cards (Visa, Mastercard, American Express), PayPal, and Google Pay. Bank transfers are also accepted for larger orders.
+
+Customer Support:
+Our customer support team is available Monday to Friday, 9 AM to 5 PM EST. You can reach us via email at support@example.com or by calling our toll-free number at 1-800-123-4567.
+
+Account Management:
+To reset your password, visit the login page and click on the "Forgot Password" link. Follow the instructions sent to your registered email address. For other account-related queries, please contact customer support.
+
+Delivery Tracking:
+Once your order has shipped, you will receive a confirmation email with a tracking number. You can use this tracking number on our website or the carrier's website to monitor the status of your delivery.
