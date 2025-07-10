@@ -1,44 +1,36 @@
 import os
 import json
-import re  # Import regex module for parsing
+import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 from dotenv import load_dotenv
-import PyPDF2  # Import PyPDF2 for PDF reading
+import PyPDF2
 
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
+CORS(app)
 
 # In-memory storage for conversation history.
 # In a real application, this would be stored in a database
 # and associated with a user session ID.
 conversation_history = []
 
-# Replace with your actual Gemini API key from environment variables
-# For local development, set GEMINI_API_KEY in your .env file
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
 # --- Load External Product Catalog from JSON file ---
-# Construct the absolute path to the product_catalog.json file
-# This makes sure the file is found regardless of where you run app.py from.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PRODUCT_CATALOG_FILE = os.path.join(BASE_DIR, "files", "product_catalog.json")
 
-PRODUCT_CATALOG = {}  # Initialize as an empty dictionary
+PRODUCT_CATALOG = {}
 
 try:
     with open(PRODUCT_CATALOG_FILE, "r") as f:
-        # Load the content directly. If the JSON is a dictionary, it will be loaded as such.
         loaded_catalog = json.load(f)
-
-        # Now, ensure all keys in the loaded catalog are uppercase for consistent lookup.
         PRODUCT_CATALOG = {k.upper(): v for k, v in loaded_catalog.items()}
-
     print(f"Successfully loaded product catalog from {PRODUCT_CATALOG_FILE}")
 except FileNotFoundError:
     print(f"Error: product_catalog.json not found at {PRODUCT_CATALOG_FILE}")
@@ -57,19 +49,17 @@ def get_product_details(product_id: str):
     Fetches product details from the loaded product catalog.
     """
     print(f"Tool: get_product_details called with product_id: {product_id}")
-    product_info = PRODUCT_CATALOG.get(
-        product_id.upper()
-    )  # Use .upper() for case-insensitivity
+    product_info = PRODUCT_CATALOG.get(product_id.upper())
     if product_info:
         return {"status": "success", "data": product_info}
     else:
         return {
-            "status": "error",
+            "status": "not_found",
             "message": f"Product with ID '{product_id}' not found.",
         }
 
 
-# --- External Resource Tool: JSONPlaceholder API (Existing) ---
+# --- External Resource Tool: JSONPlaceholder API ---
 JSONPLACEHOLDER_BASE_URL = "https://jsonplaceholder.typicode.com"
 
 
@@ -89,14 +79,13 @@ def get_jsonplaceholder_posts(limit: int = 1):
         return {"status": "error", "message": f"Failed to fetch posts: {e}"}
 
 
-# --- NEW Tool: Live PDF FAQ Search ---
+# --- Live PDF FAQ Search Tool ---
 FAQ_PDF_FILE = os.path.join(BASE_DIR, "files", "faq.pdf")
-RAW_PDF_TEXT_CONTENT = ""  # Global variable to store raw extracted PDF text
-FAQ_DATA = {}  # Global variable to store parsed FAQ data (question/topic -> answer)
+RAW_PDF_TEXT_CONTENT = ""
+FAQ_DATA = {}
 
 
-# This function is responsible for the initial step of extracting the raw text from the binary PDF file (faq.pdf).
-def load_extract_pdf_content():
+def load_pdf_content():
     """
     Loads and extracts raw text content from the faq.pdf file.
     """
@@ -107,24 +96,22 @@ def load_extract_pdf_content():
         return
 
     try:
-        with open(FAQ_PDF_FILE, "rb") as f:  # Open in binary read mode
+        with open(FAQ_PDF_FILE, "rb") as f:
             reader = PyPDF2.PdfReader(f)
             text = ""
             for page_num in range(len(reader.pages)):
                 page = reader.pages[page_num]
-                # Extract text and clean up common PDF artifacts like excessive whitespace
                 extracted_text = page.extract_text()
                 if extracted_text:
-                    text += extracted_text.strip() + "\n"  # Add newline after each page
+                    text += extracted_text.strip() + "\n"
             RAW_PDF_TEXT_CONTENT = text
         print(f"Successfully loaded raw text from {FAQ_PDF_FILE}")
     except Exception as e:
         print(f"Error loading or extracting text from PDF: {e}")
-        RAW_PDF_TEXT_CONTENT = ""  # Clear content on error
+        RAW_PDF_TEXT_CONTENT = ""
 
 
-# This function takes the raw text extracted by load_extract_pdf_content() and structures it into a usable dictionary (FAQ_DATA).
-def parse_faq_pdf_content_into_dictionary():
+def parse_faq_pdf_content():
     """
     Parses the raw extracted PDF text into a structured FAQ_DATA dictionary.
     This function is called once after the raw PDF content is loaded.
@@ -137,45 +124,95 @@ def parse_faq_pdf_content_into_dictionary():
 
     parsed_data = {}
 
-    # Normalize whitespace and ensure consistent line endings for easier parsing
-    cleaned_text = re.sub(r"\s*\n\s*", "\n", RAW_PDF_TEXT_CONTENT).strip()
+    # Normalize whitespace: replace multiple newlines/spaces with a single space, then strip.
+    # This makes the text more consistent for regex matching.
+    normalized_text = re.sub(r"\s+", " ", RAW_PDF_TEXT_CONTENT).strip()
 
-    # Regex to capture sections based on your simplified FAQ.pdf structure
-    # It looks for a heading followed by a colon, then captures the content until the next heading or end of string.
-    # (?m) for multiline mode, allowing ^ to match start of line.
-    # ([A-Za-z\s]+?): Captures the heading (e.g., "Shipping Information")
-    # \s*:\s*\n: Matches the colon, optional whitespace, and a newline.
-    # (.*?)(?=\n[A-Za-z\s]+?:|$): Captures the content greedily until the next heading or end of string.
+    # Regex to find all sections:
+    # It looks for a pattern like "Heading:" followed by content.
+    # We use a non-greedy match for the content (.*?) and a positive lookahead
+    # for the next heading or the end of the string.
+    # The headings in your simplified PDF are:
+    # "Shipping Information:", "Return Policy:", "Product Warranty:", "Payment Methods:",
+    # "Customer Support:", "Account Management:", "Delivery Tracking:"
 
-    # Updated regex based on the simpler FAQ.pdf structure: "Heading:\nContent"
-    # This pattern captures the heading (Group 1) and the content (Group 2)
-    faq_section_pattern = re.compile(
-        r"(^.+?:\s*)\n(.*?)(?=(?:^[A-Za-z\s]+?:)|$)", re.DOTALL | re.MULTILINE
-    )
+    # Pattern to match the heading (Group 1) and the content (Group 2)
+    # The headings are at the start of a logical block.
+    # We'll split by these headings to get the content.
 
-    # Find all matches (heading, content)
-    for match in faq_section_pattern.finditer(cleaned_text):
-        heading = match.group(1).strip().replace(":", "").strip()  # Clean up heading
-        content = (
-            match.group(2).strip().replace("\n", " ")
-        )  # Clean up content, replace newlines with spaces
-        if heading and content:  # Ensure both heading and content are non-empty
-            parsed_data[heading.lower()] = content
+    # Pattern to split by the headings, capturing the heading itself.
+    # This allows us to process each block.
+    # The (?m) makes ^ match the start of a line.
+    # The (?=...) is a positive lookahead to split *before* the next heading.
 
-    # Special handling for "FAQ's" or "FAQS" at the very beginning if it's not a Q&A
-    # This is to avoid it being treated as a searchable key if it's just a title.
+    # This pattern specifically targets the headings in your simplified FAQ.pdf
+    # and splits the document into chunks, where each chunk starts with a heading.
+    # The headings are captured by the split itself.
+
+    # Split the text by the known headings, keeping the headings as part of the split.
+    # This regex uses a non-capturing group for the lookahead, so the split result
+    # will contain the heading and then its content.
+
+    # Example: "FAQ's Shipping Information: Standard..."
+    # The first split will be "FAQ's "
+    # Then "Shipping Information: Standard shipping..."
+
+    # Let's use a simpler approach: Find all headings, then iterate and extract content.
+
+    # Find all headings first
+    # This pattern looks for "Xyz Information:" or "Return Policy:" etc.
+    heading_pattern = re.compile(r"([A-Za-z\s]+?):", re.MULTILINE)
+
+    # Get all matches for headings and their start/end positions
+    headings_with_spans = [
+        (match.group(1).strip().lower(), match.span())
+        for match in heading_pattern.finditer(RAW_PDF_TEXT_CONTENT)
+    ]
+
+    # Add an artificial end marker for the last section
+    if headings_with_spans:
+        headings_with_spans.append(
+            ("END_OF_DOCUMENT", (len(RAW_PDF_TEXT_CONTENT), len(RAW_PDF_TEXT_CONTENT)))
+        )
+
+    # Iterate through the headings to extract content
+    for i in range(len(headings_with_spans) - 1):
+        current_heading_text, current_span = headings_with_spans[i]
+        next_span = headings_with_spans[i + 1][1]
+
+        # Content starts after the current heading's match (end of span)
+        # and ends before the next heading's match (start of next span)
+        content_start = current_span[1]
+        content_end = next_span[0]
+
+        # Extract the raw content for this section
+        raw_section_content = RAW_PDF_TEXT_CONTENT[content_start:content_end].strip()
+
+        # Clean up the content: replace multiple spaces/newlines with single space
+        cleaned_content = re.sub(r"\s+", " ", raw_section_content).strip()
+
+        if current_heading_text and cleaned_content:
+            parsed_data[current_heading_text] = cleaned_content
+
+    # Handle the initial "FAQ's" title if it's present and not a proper section
+    # This is a common artifact from PDF extraction
     if "faq's" in parsed_data:
-        del parsed_data["faq's"]  # Remove the title entry if it was parsed as a key
+        del parsed_data["faq's"]
+    if "faqs" in parsed_data:
+        del parsed_data["faqs"]
 
     FAQ_DATA = parsed_data
     print("FAQ content parsed into structured data.")
-    # Uncomment the line below to see the parsed FAQ_DATA in your console
+    # --- IMPORTANT DEBUGGING STEP ---
+    # Uncomment the line below to see the parsed FAQ_DATA in your console when the app starts.
+    # This will help you verify if the parsing is working correctly.
+    # print("Parsed FAQ_DATA:")
     # print(json.dumps(FAQ_DATA, indent=2))
 
 
 # Call functions to load and parse PDF content at startup
-load_extract_pdf_content()
-parse_faq_pdf_content_into_dictionary()
+load_pdf_content()
+parse_faq_pdf_content()
 
 
 def get_answers_from_pdf(query: str):
@@ -186,6 +223,7 @@ def get_answers_from_pdf(query: str):
     print(f"Tool: get_answers_from_pdf called with query: '{query}'")
 
     if not FAQ_DATA:
+        # This error means parsing failed, not that an answer wasn't found.
         return {
             "status": "error",
             "answer": "The FAQ document could not be loaded or parsed, or is empty.",
@@ -202,17 +240,19 @@ def get_answers_from_pdf(query: str):
     best_match_key = None
     max_match_len = 0
 
-    for faq_question, faq_answer in FAQ_DATA.items():
-        # Check if the query is contained within the FAQ question/heading
-        if query_lower in faq_question:
-            if len(query_lower) > max_match_len:  # Prefer longer matches
-                best_match_key = faq_question
+    for faq_question_key, faq_answer_content in FAQ_DATA.items():
+        # Check if the query is directly contained within a FAQ question/heading key
+        if query_lower in faq_question_key:
+            if len(query_lower) > max_match_len:  # Prefer longer, more specific matches
+                best_match_key = faq_question_key
                 max_match_len = len(query_lower)
-        # Check if the FAQ question/heading is contained within the query
-        elif faq_question in query_lower:
-            if len(faq_question) > max_match_len:  # Prefer longer matches
-                best_match_key = faq_question
-                max_match_len = len(faq_question)
+        # Also check if a part of the FAQ question/heading key is in the query (for broader matches)
+        elif faq_question_key in query_lower:
+            if (
+                len(faq_question_key) > max_match_len
+            ):  # Prefer longer, more specific matches
+                best_match_key = faq_question_key
+                max_match_len = len(faq_question_key)
 
     if best_match_key:
         found_answer = FAQ_DATA[best_match_key]
@@ -225,15 +265,17 @@ def get_answers_from_pdf(query: str):
         )  # Split query into keywords for broader search
 
         # Iterate through all FAQ answers to find relevant keywords
-        for faq_question, faq_answer in FAQ_DATA.items():
+        for faq_question_key, faq_answer_content in FAQ_DATA.items():
             # Check if any keyword from the query is present in the answer
-            # Ensure keywords are not too short to avoid irrelevant matches
+            # Ensure keywords are not too short to avoid irrelevant matches (e.g., 'a', 'the')
             if any(
-                keyword in faq_answer.lower()
+                keyword in faq_answer_content.lower()
                 for keyword in query_keywords
                 if len(keyword) > 2
             ):
-                found_answer = faq_answer
+                found_answer = faq_answer_content
+                # For this demo, we take the first answer that contains any keyword.
+                # In a real RAG, you'd use embeddings to find the *most* relevant chunk.
                 break
 
     if found_answer:
