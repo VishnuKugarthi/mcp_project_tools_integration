@@ -63,6 +63,7 @@ def get_product_details(product_id: str):
 # --- NEW External Resource Tool: JSONPlaceholder API ---
 JSONPLACEHOLDER_BASE_URL = "https://jsonplaceholder.typicode.com"
 
+
 def get_jsonplaceholder_posts(limit: int = 1):
     """
     Fetches a specified number of posts from the JSONPlaceholder API.
@@ -85,6 +86,7 @@ FAQ_PDF_FILE = os.path.join(BASE_DIR, "files", "faq.pdf")
 print(f"PDF file path: {FAQ_PDF_FILE}")
 PDF_EXTRACTED_TEXT_CONTENT = ""  # Global variable to store extracted text
 
+
 def load_pdf_content():
     """
     Loads and extracts text content from a PDF file - faq.pdf.
@@ -104,10 +106,12 @@ def load_pdf_content():
                 len(reader.pages)
             ):  # Loop through all pages of the PDF
                 # Print the current page number being processed
-                print(f"Processing page {page_num + 1} of {len(reader.pages)}")
+                # print(f"Processing page {page_num + 1} of {len(reader.pages)}")
                 page = reader.pages[page_num]  # Pointing to particular page
                 text += page.extract_text() + "\n"  # Extract text from each page
-                print(f"Extracted text from page {page_num} \n {page_num + 1}: {text}")  # Print last 100 chars of extracted text
+                # print(
+                #     f"Extracted text from page {page_num} \n {page_num + 1}: {text}"
+                # )
             PDF_EXTRACTED_TEXT_CONTENT = (
                 text  # Store the extracted text in the global variable
             )
@@ -119,10 +123,50 @@ def load_pdf_content():
 
 load_pdf_content()  # Call the function to load PDF content at startup
 
+
+def get_answers_from_pdf(query: str):
+    """
+    Searches the extracted PDF text for answers based on user's query.
+    This function simulates a search through the PDF content.
+    """
+    print(f"Tool: get_answers_from_pdf called with query: '{query}'")
+
+    if not PDF_EXTRACTED_TEXT_CONTENT:
+        return {
+            "status": "error",
+            "answer": "No PDF content available. Please ensure the PDF 'files/faq.pdf file is loaded correctly.",
+        }
+
+    query_lower = (
+        query.lower()
+    )  # Convert query to lowercase for case-insensitive search
+
+    found_answer = None
+
+    # Let's try to find sentences that contain the query keywords
+    sentences = PDF_EXTRACTED_TEXT_CONTENT.split(".")  # Split the text into sentences
+    for sentence in sentences:
+        if query_lower in sentence.lower():  # Check if the query is in the sentence
+            found_answer = sentence.strip() + "."  # Get the first matching sentence
+            break  # Found a relevant sentence, take the first one
+
+    if found_answer:
+        return {"status": "success", "answer": found_answer, "source": "faq.pdf"}
+    else:
+        # If no direct sentence match, try to find a broader section or just indicate not found.
+        # For simplicity, we'll just return a generic "not found" if no sentence matches.
+        return {
+            "status": "not_found",
+            "answer": "I couldn't find the direct answer to your question. Please try rephrasing or contact support.",
+            "source": "faq.pdf",
+        }
+
+
 # Map tool names to their corresponding functions
 AVAILABLE_TOOLS = {
     "get_product_details": get_product_details,
-    "get_jsonplaceholder_posts": get_jsonplaceholder_posts,  # Add the new tool
+    "get_jsonplaceholder_posts": get_jsonplaceholder_posts,
+    "get_answers_from_pdf": get_answers_from_pdf,
 }
 
 # --- Tool Definitions for the LLM ---
@@ -155,6 +199,20 @@ TOOL_DEFINITIONS = [
                     "default": 1,
                 }
             },
+        },
+    },
+    {
+        "name": "get_answers_from_pdf",
+        "description": "Searches the FAQ document (faq.pdf) to find answers to user queries. Use this when user asks about Base44, what kind of applications can be build using Base44, Base44 application development, Base44 application deployment, Base44 data security and privacy, application ownership, shipping, payment, customer support, returns, account management, delivery tracking, product warranty",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The user's question or query or keywords to search in the FAQ PDF file.",
+                }
+            },
+            "required": ["query"],
         },
     },
 ]
