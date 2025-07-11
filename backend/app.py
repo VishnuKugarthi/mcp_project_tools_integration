@@ -14,8 +14,6 @@ app = Flask(__name__)
 CORS(app)
 
 # In-memory storage for conversation history.
-# In a real application, this would be stored in a database
-# and associated with a user session ID.
 conversation_history = []
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
@@ -84,8 +82,7 @@ FAQ_PDF_FILE = os.path.join(BASE_DIR, "files", "faq.pdf")
 RAW_PDF_TEXT_CONTENT = ""
 FAQ_DATA = {}
 
-
-def load_pdf_content():
+def load_pdf_content_and_extract_text():
     """
     Loads and extracts raw text content from the faq.pdf file.
     """
@@ -111,7 +108,7 @@ def load_pdf_content():
         RAW_PDF_TEXT_CONTENT = ""
 
 
-def parse_faq_pdf_content():
+def parse_faq_pdf_content_into_dictionary():
     """
     Parses the raw extracted PDF text into a structured FAQ_DATA dictionary.
     This function is called once after the raw PDF content is loaded.
@@ -123,41 +120,6 @@ def parse_faq_pdf_content():
         return
 
     parsed_data = {}
-
-    # Normalize whitespace: replace multiple newlines/spaces with a single space, then strip.
-    # This makes the text more consistent for regex matching.
-    normalized_text = re.sub(r"\s+", " ", RAW_PDF_TEXT_CONTENT).strip()
-
-    # Regex to find all sections:
-    # It looks for a pattern like "Heading:" followed by content.
-    # We use a non-greedy match for the content (.*?) and a positive lookahead
-    # for the next heading or the end of the string.
-    # The headings in your simplified PDF are:
-    # "Shipping Information:", "Return Policy:", "Product Warranty:", "Payment Methods:",
-    # "Customer Support:", "Account Management:", "Delivery Tracking:"
-
-    # Pattern to match the heading (Group 1) and the content (Group 2)
-    # The headings are at the start of a logical block.
-    # We'll split by these headings to get the content.
-
-    # Pattern to split by the headings, capturing the heading itself.
-    # This allows us to process each block.
-    # The (?m) makes ^ match the start of a line.
-    # The (?=...) is a positive lookahead to split *before* the next heading.
-
-    # This pattern specifically targets the headings in your simplified FAQ.pdf
-    # and splits the document into chunks, where each chunk starts with a heading.
-    # The headings are captured by the split itself.
-
-    # Split the text by the known headings, keeping the headings as part of the split.
-    # This regex uses a non-capturing group for the lookahead, so the split result
-    # will contain the heading and then its content.
-
-    # Example: "FAQ's Shipping Information: Standard..."
-    # The first split will be "FAQ's "
-    # Then "Shipping Information: Standard shipping..."
-
-    # Let's use a simpler approach: Find all headings, then iterate and extract content.
 
     # Find all headings first
     # This pattern looks for "Xyz Information:" or "Return Policy:" etc.
@@ -205,20 +167,19 @@ def parse_faq_pdf_content():
     print("FAQ content parsed into structured data.")
     # --- IMPORTANT DEBUGGING STEP ---
     # Uncomment the line below to see the parsed FAQ_DATA in your console when the app starts.
-    # This will help you verify if the parsing is working correctly.
     # print("Parsed FAQ_DATA:")
     # print(json.dumps(FAQ_DATA, indent=2))
 
 
 # Call functions to load and parse PDF content at startup
-load_pdf_content()
-parse_faq_pdf_content()
+load_pdf_content_and_extract_text()
+parse_faq_pdf_content_into_dictionary()
 
 
 def get_answers_from_pdf(query: str):
     """
     Searches the parsed FAQ data for answers based on a user query.
-    Performs a more intelligent lookup than simple keyword search.
+    Performs a more robust search by checking the query against FAQ questions/answers.
     """
     print(f"Tool: get_answers_from_pdf called with query: '{query}'")
 
@@ -271,7 +232,7 @@ def get_answers_from_pdf(query: str):
             if any(
                 keyword in faq_answer_content.lower()
                 for keyword in query_keywords
-                if len(keyword) > 2
+                if len(keyword) > 4
             ):
                 found_answer = faq_answer_content
                 # For this demo, we take the first answer that contains any keyword.
